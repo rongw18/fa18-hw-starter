@@ -151,7 +151,7 @@ class YelpClassifier(object):
     @staticmethod
     def review_to_word_counts(review):
         words = []
-        for eachword in review[2].split():  #for words in the text, add((star, word), 1), and then return it.
+        for eachword in review[2].split(" "):  #for words in the text, add((star, word), 1), and then return it.
             words.append(((review[1],eachword), 1))
         return words
             #print(((num_stars, word), 1))
