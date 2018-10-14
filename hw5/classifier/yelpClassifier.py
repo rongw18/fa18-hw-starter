@@ -75,7 +75,7 @@ class YelpClassifier(object):
         # 1. (review_id, num_stars, review_text_as_string) --> [(num_stars, (1, num_words))]
         # 2. [(num_stars, (1, num_words))] --> [(num_stars, (num_reviews_of_num_stars, num_words_total_of_num_stars))]
 
-        raise NotImplementedError()
+        #raise NotImplementedError()
 
         num_reviews_words_per_num_stars = train_rdd\
                                           .map(self.review_to_num_stars_num_words)\
@@ -193,8 +193,8 @@ class YelpClassifier(object):
  # ((num_stars, word_in_review), num_reviews_with_word_and_stars) --> (num_stars, {word : probability_in_review_of_num_stars})
         num_stars, word = num_stars_and_word_counts[0]
         count_of_word = num_stars_and_word_counts[1]
-       
-        probability = self.compute_likelihood(count_of_word, num_stars)   #[0,0]is the first on int he first set?
+        probability = float((count_of_word + 1)) / float((self.NUM_WORDS[int(num_stars)] + 1))
+        #probability = self.compute_likelihood(count_of_word, num_stars)   #[0,0]is the first on int he first set?
         #print("return from here")
         #print((num_stars, {word : probability}))
         return (num_stars, {word : probability})
@@ -230,7 +230,7 @@ class YelpClassifier(object):
     # [(num_stars, (1, num_words))] --> [(num_stars, (num_reviews_of_num_stars, num_words_total_of_num_stars))]
     @staticmethod
     def add_review_and_word_counts(count1, count2):
-        num_reviews_of_num_stars = count1[0] + num_reviews2
+        num_reviews_of_num_stars = count1[0] +count2[0]
         num_words_total_of_num_stars = count1[1]  +count2[1]
         return (num_reviews_of_num_stars, num_words_total_of_num_stars)
         raise NotImplementedError()
