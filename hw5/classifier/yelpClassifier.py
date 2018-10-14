@@ -46,10 +46,10 @@ class YelpClassifier(object):
         raise NotImplementedError()
 
         class_likelihoods = train_rdd \
-                            # ._____(_____) \
-                            # ._____(_____) \
-                            # ._____(_____) \
-                            # ._____(_____)
+                            .flatMap(self.review_to_word_counts) \
+                            .reduceByKey(self.add_review_counts) \
+                            .map(self.counts_to_probabilities) \
+							.aggregateByKey({}, self.combine_probability_tables, self.combine_probability_tables)
 
         LIKELIHOODS = {}
         for num_stars, likelihood in class_likelihoods.collect():
@@ -68,8 +68,8 @@ class YelpClassifier(object):
         raise NotImplementedError()
 
         num_reviews_words_per_num_stars = train_rdd \
-                                            # ._____(_____) \
-                                            # ._____(_____) 
+                                          .map(self.review_to_num_stars_num_words)\
+										  .reduceByKey(self.add_review_and_word_counts)
 
 
         NUM_REVIEWS = {}
@@ -105,12 +105,12 @@ class YelpClassifier(object):
         # 6. (review_id, (num_stars1, log_posterior1)), (review_id, (num_stars2, log_posterior2)) --> (review_id, (num_stars, max_posterior)
 
         predictions = test_rdd \
-                            # ._____(_____) \
-                            # ._____(_____) \
-                            # ._____(_____) \
-                            # ._____(_____) \
-                            # ._____(_____) \
-                            # ._____(_____) \
+                            .flatMap(self.review_to_num_stars_and_word_pairs) \
+                            .map(self.words_to_log_likelihoods) \
+                            .reduceByKey(self.add_log_likelihoods) \
+                            .map(self.likelihood_to_posterior) \
+                            .map(self.review_id_only_as_key) \
+							.reduceByKey(self.find_max_posterior) \
                             .sortByKey()
 
         return predictions
@@ -127,6 +127,10 @@ class YelpClassifier(object):
 
     @staticmethod
     def review_to_word_counts(review):
+        words = []
+        for w in review[2].split():  #for words in the text, add((star, word), 1), and then return it.
+            words.append(((review[1],w), 1))
+        return words
 
         # Maps the words in a review to pairs of that word, the number of stars
         # of the review that the word was in, and the count of that word.
@@ -137,11 +141,11 @@ class YelpClassifier(object):
         
     @staticmethod
     def add_review_counts(count1, count2):
-
+        return count1+count2   #just make the values a sum. 
         # Adds two review counts together
 
         # ((num_stars, word_in_review), 1), ((num_stars, word_in_review), 1) --> ((num_stars, word_in_review), num_reviews_of_num_stars_with_word)
-
+        
         raise NotImplementedError()
 
     def compute_likelihood(self, count_of_word, num_stars):
@@ -152,6 +156,9 @@ class YelpClassifier(object):
         return probability  
     
     def counts_to_probabilities(self, num_stars_and_word_counts):
+
+        probability = self.compute_likelihood(num_stars_and_word_counts[1], int(num_stars_and_word_counts[0][0]))   #[0,0]is the first on int he first set?
+        return (num_stars_and_word_counts[0][0], {num_stars_and_word_counts[0][1]:probability})
 
         # Maps the count of a word, over reviews of the same number of stars,
         # to its likelihood: P(WORD | NUM_STARS) = count of WORD / count of ALL words in reviews with NUM_STARS
@@ -171,9 +178,16 @@ class YelpClassifier(object):
 
     # ____________calculate_num_reviews_per_num_stars() helpers________ #
     
+
+
+
     @staticmethod
     def review_to_num_stars_num_words(review):
 
+        i=0
+        for i in review[2].split():
+            i+=1
+        return(review[1],(1,i))
         # Converts a review into a pair of its number of stars with the
         # number of words in the review and the number of reviews it represents
 
@@ -183,7 +197,7 @@ class YelpClassifier(object):
 
     @staticmethod
     def add_review_and_word_counts(count1, count2):
-
+        return ((count1[0]+count2[0], count1[1]+count2[1]))
         # Combines the values of two pairs outputted by review_to_num_stars_num_words
 
         # (num_stars, (1, num_words)), (num_stars, (1, num_words)) --> (num_stars, (num_reviews_of_num_stars, num_words_total_of_num_stars))
@@ -272,6 +286,5 @@ class YelpClassifier(object):
 
         # (review_id, (num_stars1, log_posterior1)), (review_id, (num_stars2, log_posterior2)) --> (review_id, (num_stars, max_posterior))
 
-        raise NotImplementedError()
-
+raise NotImplementedError()
 
