@@ -286,5 +286,5 @@ class YelpClassifier(object):
 
         # (review_id, (num_stars1, log_posterior1)), (review_id, (num_stars2, log_posterior2)) --> (review_id, (num_stars, max_posterior))
 
-raise NotImplementedError()
+        raise NotImplementedError()
 
