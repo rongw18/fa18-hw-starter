@@ -7,11 +7,11 @@ STARS = [1.0, 3.0, 5.0]
 class YelpClassifier(object):
 
     def __init__(self):
-        self.NUM_REVIEWS = {}   # {num_stars : # of reviews with num_stars}
-        self.NUM_WORDS = {}     # {num_stars : # of words total across all reviews with num_stars}
-        self.LIKELIHOODS = {}   # {word : P(word | num_stars)}
-        self.PRIORS = {}        # {num_stars : P(num_stars)}
-
+        self.NUM_REVIEWS = {} # num_stars -> # of reviews with num_stars
+        self.NUM_WORDS = {} # num_stars -> # of words total across all reviews with num_stars
+        self.LIKELIHOODS = {} # word -> P(word | num_stars)
+        self.PRIORS = {} # num_stars -> P(num_stars)
+        print("here")
     ######################################################
     ################# DRIVER FUNCTIONS ##################
     ######################################################
@@ -19,6 +19,9 @@ class YelpClassifier(object):
     def train(self, train_rdd):
         self.NUM_REVIEWS, self.NUM_WORDS = self.calculate_num_reviews_and_words_per_num_stars(train_rdd)
         self.PRIORS = self.calculate_priors()
+        #print("================================= Testing self.PRIORS =================================")
+        #print()
+        #print(self.PRIORS)
         self.LIKELIHOODS = self.calculate_likelihoods(train_rdd)
 
     def classify(self, test_rdd):
@@ -29,27 +32,32 @@ class YelpClassifier(object):
     ######################################################
     ################# PYSPARK FUNCTIONS ##################
     ######################################################
-    
+
+    ################################# 
+    #           FILL THIS IN        #
+    #################################
+    # Given the reviews in train_rdd, calculates P(word | num_stars) for every word found in a review,
+    # i.e. the likelihood of a word in a review given the number of stars that review received.
+    # The likelihood is calculated as, across all of the reviews given NUM_STARS:
+    # P(WORD | NUM_STARS) = # of occurences of WORD / # of total words in all reviews with NUM_STARS
     def calculate_likelihoods(self, train_rdd):
-
-        # Given the reviews in train_rdd, calculates P(word | num_stars) for every word found in a review,
-        # i.e. the likelihood of a word in a review given the number of stars that review received.
-        # The likelihood is calculated as, across all of the reviews given NUM_STARS:
-        # P(WORD | NUM_STARS) = # of occurences of WORD / # of total words in all reviews with NUM_STARS
-
         # Transformations:
-        # 1. (review_id, num_stars, review_text_as_string) --> [((num_stars, word_in_review_1), 1), ((num_stars, word_in_review_2), 1), ...]
-        # 2. ((num_stars, word_in_review), 1), ((num_stars, word_in_review), 1) --> ((num_stars, word_in_review), num_reviews_of_num_stars_with_word)
-        # 3. ((num_stars, word_in_review), num_reviews_with_word_and_stars) --> (num_stars, {word : probability_in_review_of_num_stars})
-        # 4. (num_stars, {word1 : prob1, word2 : prob2, word3 : prob3...})
-
-        raise NotImplementedError()
+        # 1. (review_id, num_stars, review_text_as_string) --> [((num_stars, word_in_review), 1)]
+        # 2. [((num_stars, word_in_review), 1)] --> [((num_stars, word_in_review), num_reviews_of_num_stars_with_word)]
+        # 3. [((num_stars, word_in_review), num_reviews_with_word_and_stars)] --> [(num_stars, {word : probability_in_review_of_num_stars})]
+        # 4. [(num_stars, {word1 : prob1, word2 : prob2, word3 : prob3...})]
+        #raise NotImplementedError()
 
         class_likelihoods = train_rdd \
-                            .flatMap(self.review_to_word_counts) \
-                            .reduceByKey(self.add_review_counts) \
-                            .map(self.counts_to_probabilities) \
-							.aggregateByKey({}, self.combine_probability_tables, self.combine_probability_tables)
+                                   .flatMap(self.review_to_word_counts) \
+                                   .reduceByKey(self.add_review_counts) \
+                                   .map(self.counts_to_probabilities) \
+                                   .aggregateByKey({}, self.combine_probability_tables, self.combine_probability_tables)
+        # fill in transform  .____________(self.add_review_counts) \
+                             
+                            
+        # fill in args      .aggregateByKey(______, _______, _______)
+                            
 
         LIKELIHOODS = {}
         for num_stars, likelihood in class_likelihoods.collect():
@@ -57,19 +65,20 @@ class YelpClassifier(object):
 
         return LIKELIHOODS
 
+    ################################# 
+    #           FILL THIS IN        #
+    #################################
+    # Calculate number of reviews per number of stars
     def calculate_num_reviews_and_words_per_num_stars(self, train_rdd):
-
-        # Calculate number of reviews per number of stars
-
         # Transformations:
-        # 1. (review_id, num_stars, review_text_as_string) --> (num_stars, (1, num_words))
-        # 2. (num_stars, (1, num_words)), (num_stars, (1, num_words)) --> (num_stars, (num_reviews_of_num_stars, num_words_total_of_num_stars))
+        # 1. (review_id, num_stars, review_text_as_string) --> [(num_stars, (1, num_words))]
+        # 2. [(num_stars, (1, num_words))] --> [(num_stars, (num_reviews_of_num_stars, num_words_total_of_num_stars))]
 
-        raise NotImplementedError()
+        #raise NotImplementedError()
 
-        num_reviews_words_per_num_stars = train_rdd \
-                                          .map(self.review_to_num_stars_num_words)\
-										  .reduceByKey(self.add_review_and_word_counts)
+        num_reviews_words_per_num_stars = train_rdd.map(self.review_to_num_stars_num_words).reduceByKey(self.add_review_and_word_counts)
+#   one transformation here->>>>>   
+#   one transformation here->>>>>   
 
 
         NUM_REVIEWS = {}
@@ -78,7 +87,10 @@ class YelpClassifier(object):
             num_reviews, num_words = counts
             NUM_REVIEWS[int(num_stars)] = int(num_reviews)
             NUM_WORDS[int(num_stars)] = int(num_words)
-
+            #print("============================= Testing NUM_WORDS ============================= ")
+            #print(NUM_WORDS)
+        #print("============================= Testing Total ============================= ")
+        #print(NUM_REVIEWS, NUM_WORDS)
         return NUM_REVIEWS, NUM_WORDS
 
     # Calculates priors for each class as: P(num_stars) = # of reviews with num_stars / # of total reviews 
@@ -91,26 +103,29 @@ class YelpClassifier(object):
         for num_stars, num_reviews in PRIORS.items():
             prior = float(num_reviews) / float(total_num_reviews)
             PRIORS[num_stars] = prior
+        #print("=========================== Testing Priors ===============================")
+        #print()
+        #print(PRIORS)
 
         return PRIORS
 
     def classify_reviews(self, test_rdd):
-
         # Transformations:
         # 1. (review_id, num_stars, review_text_as_string) --> [((num_stars1, review_id) word1), ((num_stars1, review_id), word2), ((num_stars2, review_id), word1)...]
-        # 2. ((num_stars1, review_id), word1) -> ((num_stars1, review_id), log_p_word1)
-        # 3. ((num_stars1, review_id) p_word1), ((num_stars1, review_id), p_word2) --> ((num_stars1, review_id), p_word_sum)
-        # 4. ((num_stars1, review_id), log_likelihood) --> ((num_stars1, review_id), log_posterior)
-        # 5. ((num_stars1, review_id), log_posterior) --> (review_id, (num_stars1, log_posterior1)
-        # 6. (review_id, (num_stars1, log_posterior1)), (review_id, (num_stars2, log_posterior2)) --> (review_id, (num_stars, max_posterior)
-
+        # 2. [((num_stars1, review_id) word1), ((num_stars1, review_id), word2), ((num_stars2, review_id), word1)...] -> 
+        #    [((num_stars1, review_id) log_p_word1), ((num_stars1, review_id), log_p_word2), ((num_stars2, review_id), log_p_word1)...]
+        # 3. [((num_stars1, review_id) p_word1), ((num_stars1, review_id), p_word2)] --> [((num_stars1, review_id), p_word2_sum)]
+        # 4. [((num_stars1, review_id), log_likelihood)] --> [((num_stars1, review_id), log_posterior)]
+        # 5. [((num_stars1, review_id), log_posterior)] --> [(review_id, (num_stars1, log_posterior1)]
+        # 6. [(review_id, (num_stars1, log_posterior1)] --> [(review_id, (num_stars, max_posterior)]
+        # 7. [(review_id, (num_stars, max_posterior)] --> [(review_id, most_likely_num_stars)]
         predictions = test_rdd \
                             .flatMap(self.review_to_num_stars_and_word_pairs) \
                             .map(self.words_to_log_likelihoods) \
                             .reduceByKey(self.add_log_likelihoods) \
                             .map(self.likelihood_to_posterior) \
                             .map(self.review_id_only_as_key) \
-							.reduceByKey(self.find_max_posterior) \
+                            .reduceByKey(self.find_max_posterior) \
                             .sortByKey()
 
         return predictions
@@ -125,84 +140,105 @@ class YelpClassifier(object):
 
     # ____________calculate_likelihoods() helpers________ #
 
+    ################################# 
+    #           FILL THIS IN        #
+    #################################
+    # Maps the words in a review to pairs of that word, the number of stars
+    # of the review that the word was in, and the count of that word.
+    # Review is of the format (review_id, num_stars, review_text_as_string)
+    # Converts to [(key, 1)] where key = (num_stars, word_in_review)
     @staticmethod
     def review_to_word_counts(review):
-        words = []
-        for w in review[2].split():  #for words in the text, add((star, word), 1), and then return it.
-            words.append(((review[1],w), 1))
-        return words
-
-        # Maps the words in a review to pairs of that word, the number of stars
-        # of the review that the word was in, and the count of that word.
-
-        # (review_id, num_stars, review_text_as_string) --> [((num_stars, word_in_review_1), 1), ((num_stars, word_in_review_2), 1), ...]
-
-        raise NotImplementedError()
+        num_stars, review_text_as_string = review[1], review[2]
+        text = review_text_as_string
+        words = text.split(" ")
+        pairs = []
+        for word in words:
+            pairs.append(((num_stars, word), 1))
+            #print(((num_stars, word), 1))
+        #print("======================= pairs =======================")
+        #print(pairs)
+        #print("exists from here")
+        return pairs
         
+    ################################# 
+    #           FILL THIS IN        #
+    #################################
+    # Adds two review counts together
     @staticmethod
     def add_review_counts(count1, count2):
-        return count1+count2   #just make the values a sum. 
-        # Adds two review counts together
-
-        # ((num_stars, word_in_review), 1), ((num_stars, word_in_review), 1) --> ((num_stars, word_in_review), num_reviews_of_num_stars_with_word)
+        #print("================================= count ===================================")
+        #print(count1, count2)
+        return count1 + count2
         
-        raise NotImplementedError()
 
+    # Helper function to compute the likelihood of a word with Laplace smoothing
     def compute_likelihood(self, count_of_word, num_stars):
+        #print("========= compute_likelihood ==========")
+        #print(num_stars)
+        #print(self.NUM_WORDS)
+        number_of_words = self.NUM_WORDS[num_stars]
+        
+        probability = float(count_of_word + 1) / float(number_of_words+ 1)
+        return probability
 
-        # Helper function to compute the likelihood of a word with Laplace smoothing
-
-        probability = float((count_of_word + 1)) / float((self.NUM_WORDS[num_stars] + 1))
-        return probability  
-    
+    ################################# 
+    #           FILL THIS IN        #
+    #################################    
+    # [((num_stars, word_in_review), num_reviews_with_word_and_stars)] --> [(num_stars, {word : probability_in_review_of_num_stars})]
+    # Maps the count of a word, over reviews of the same number of stars,
+    # to its likelihood: P(WORD | NUM_STARS) = count of WORD / count of ALL words in reviews with NUM_STARS
     def counts_to_probabilities(self, num_stars_and_word_counts):
+        #print("=================== Key Test ===================")
+        #print(num_stars_and_word_counts)
+        num_stars, word = num_stars_and_word_counts[0]
+        count_of_word = num_stars_and_word_counts[1]
+        #print(num_stars, word, count_of_word)
+        #for key in self.NUM_WORDS.keys():
+            #print("key:", key, "value:", self.NUM_WORDS[key])
+        probability = float((count_of_word + 1)) / float((self.NUM_WORDS[int(num_stars)] + 1))
+        #print("return from here")
+        #print((num_stars, {word : probability}))
+        return (num_stars, {word : probability})
 
-        probability = self.compute_likelihood(num_stars_and_word_counts[1], int(num_stars_and_word_counts[0][0]))   #[0,0]is the first on int he first set?
-        return (num_stars_and_word_counts[0][0], {num_stars_and_word_counts[0][1]:probability})
-
-        # Maps the count of a word, over reviews of the same number of stars,
-        # to its likelihood: P(WORD | NUM_STARS) = count of WORD / count of ALL words in reviews with NUM_STARS
-
-        # ((num_stars, word_in_review), num_reviews_with_word_and_stars) --> (num_stars, {word : probability_in_review_of_num_stars})
-
-        raise NotImplementedError()
-
+    # Given two probability tables as dictionaries (e.g. {word1: prob1, word2: prob2...}),
+    # Combines the two tables, by adding the contents of the second table into the first,
+    # and returning the now updated first table.
     def combine_probability_tables(self, word1_and_probability, word2_and_probability):
-
-        # Given two probability tables as dictionaries (e.g. {word1: prob1, word2: prob2...}),
-        # Combines the two tables, by adding the contents of the second table into the first,
-        # and returning the now updated first table.
-
+        #print("========= word2_and_probability ==========")
+        #print(word2_and_probability)
         word1_and_probability.update(word2_and_probability)
         return word1_and_probability
 
     # ____________calculate_num_reviews_per_num_stars() helpers________ #
-    
 
-
-
+    ################################# 
+    #           FILL THIS IN        #
+    #################################
+    # Converts a review into a pair of its number of stars with the
+    # number of words in the review and the number of reviews it represents
+    # (review_id, num_stars, review_text_as_string) --> [(num_stars, (1, num_words))]
     @staticmethod
     def review_to_num_stars_num_words(review):
+        num_stars, review_text_as_string = review[1], review[2]
+        words = review_text_as_string.split(" ")
+        num_words = len(words)
+        return (num_stars, (1, num_words))
+        #raise NotImplementedError()
 
-        i=0
-        for i in review[2].split():
-            i+=1
-        return(review[1],(1,i))
-        # Converts a review into a pair of its number of stars with the
-        # number of words in the review and the number of reviews it represents
-
-        # (review_id, num_stars, review_text_as_string) --> (num_stars, (1, num_words))
-
-        raise NotImplementedError()
-
+    ################################# 
+    #           FILL THIS IN        #
+    ################################# 
+    # Combines the values of two pairs outputted by review_to_num_stars_num_words
+    # [(num_stars, (1, num_words))] --> [(num_stars, (num_reviews_of_num_stars, num_words_total_of_num_stars))]
     @staticmethod
     def add_review_and_word_counts(count1, count2):
-        return ((count1[0]+count2[0], count1[1]+count2[1]))
-        # Combines the values of two pairs outputted by review_to_num_stars_num_words
-
-        # (num_stars, (1, num_words)), (num_stars, (1, num_words)) --> (num_stars, (num_reviews_of_num_stars, num_words_total_of_num_stars))
-
-        raise NotImplementedError()
+        num_reviews1, num_words1 = count1[0], count1[1] 
+        num_reviews2, num_words2 = count2[0], count2[1]
+        num_reviews_of_num_stars = num_reviews1 + num_reviews2
+        num_words_total_of_num_stars = num_words1 + num_words2
+        return (num_reviews_of_num_stars, num_words_total_of_num_stars)
+        #raise NotImplementedError()
 
     # _________________________________________________________ #
     # ____________CLASSIFICATION HELPERS_______________________ #
@@ -210,12 +246,10 @@ class YelpClassifier(object):
 
     # ____________classify_reviews() helpers____________________ #
 
+    # For all words in the review and all possible star ratings for the review,
+    # returns list of pairs of the possible number of stars, the review's ID, and the word itself.
     @staticmethod
     def review_to_num_stars_and_word_pairs(review):
-
-        # For all words in the review and all possible star ratings for the review,
-        # returns list of pairs of the possible number of stars, the review's ID, and the word itself.
-
         review_id, review_text = review
         review = review_text.split(" ")
 
@@ -226,15 +260,13 @@ class YelpClassifier(object):
 
         return possible_num_stars_word_pairs
 
+    # Given a possible number of stars, maps a word to its log-likelihood using self.LIKELIHOODS
+    # i.e. for WORD and possible NUM_STARS, maps WORD to log(P(WORD | NUM_STARS))
+    # If WORD is not found in self.LIKELIHOODS, then it has zero likelihood, which after Laplace smoothing,
+    # maps to a log-likelihood = log(1 / # of total words in reviews with NUM_STARS + 1).
     def words_to_log_likelihoods(self, stars_id_word):
-
-        # Given a possible number of stars, maps a word to its log-likelihood using self.LIKELIHOODS
-        # i.e. for WORD and possible NUM_STARS, maps WORD to log(P(WORD | NUM_STARS))
-        # If WORD is not found in self.LIKELIHOODS, then it has zero likelihood, which after Laplace smoothing,
-        # maps to a log-likelihood = log(1 / # of total words in reviews with NUM_STARS + 1).
-
-        num_stars, review_id = int(stars_id_word[0][0]), stars_id_word[0][1]
-        word = stars_id_word[1]
+        num_stars, review_id = int(stars_id_word[0][0]), str(stars_id_word[0][1])
+        word = str(stars_id_word[1])
 
         likelihoods = self.LIKELIHOODS[num_stars]
 
@@ -243,23 +275,20 @@ class YelpClassifier(object):
         else:
             num_words_with_num_stars = self.NUM_WORDS[num_stars]
             word_likelihood = 1.0 / float(num_words_with_num_stars + 1)
+
         log_likelihood = math.log(word_likelihood)
 
         return ((num_stars, review_id), log_likelihood)
 
+    # Adds two log-likelihoods together
     @staticmethod
     def add_log_likelihoods(likelihood1, likelihood2):
-
-        # Adds two log-likelihoods together
-
         return float(likelihood1) + float(likelihood2)
 
+    # Given a likelihood, P(WORD | NUM_STARS), calculates the posterior:
+    # P(WORD, NUM_STARS) = P(WORD | NUM_STARS) * P(NUM_STARS)
+    # P(NUM_STARS) is stored in self.PRIORS
     def likelihood_to_posterior(self, stars_id_lhood):
-
-        # Given a likelihood, P(WORD | NUM_STARS), calculates the posterior:
-        # P(WORD, NUM_STARS) = P(WORD | NUM_STARS) * P(NUM_STARS)
-        # P(NUM_STARS) is stored in self.PRIORS
-
         num_stars, review_id = int(stars_id_lhood[0][0]), stars_id_lhood[0][1]
         log_likelihood = float(stars_id_lhood[1])
         prior = self.PRIORS[num_stars]
@@ -267,24 +296,28 @@ class YelpClassifier(object):
 
         return ((num_stars, review_id), posterior)
 
+    # Modifies key-value pair such that the key only contains the review_id
+    # All other "values" in the key are moved into the value of the pair
     @staticmethod
     def review_id_only_as_key(stars_id_posterior):
-
-        # Modifies key-value pair such that the key only contains the review_id
-        # All other "values" in the key are moved into the value of the pair
-
         num_stars, review_id = stars_id_posterior[0][0], stars_id_posterior[0][1]
         posterior = stars_id_posterior[1]
-        
         return (review_id, (num_stars, posterior))
 
+    ################################# 
+    #           FILL THIS IN        #
+    #################################
+    # Returns the max of two posterior probabilities as well as the number of stars
+    # rating the corresponds to the greater posterior probability
+    # [(review_id, (num_stars1, log_posterior1)] --> [(review_id, (num_stars, max_posterior)]
     @staticmethod
     def find_max_posterior(num_stars_posterior1, num_stars_posterior2):
-
-        # Returns the max of two posterior probabilities as well as the number of stars
-        # rating the corresponds to the greater posterior probability
-
-        # (review_id, (num_stars1, log_posterior1)), (review_id, (num_stars2, log_posterior2)) --> (review_id, (num_stars, max_posterior))
-
-        raise NotImplementedError()
-
+        data = ()
+        num_stars1, log1 = num_stars_posterior1[0], num_stars_posterior1[1]
+        num_stars2, log2 = num_stars_posterior2[0], num_stars_posterior2[1]
+        if (log1 < log2) :
+            data = (num_stars2, log2)
+        else:
+            data = (num_stars1, log1)
+        return data
+#raise NotImplementedError()
